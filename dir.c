@@ -9,22 +9,28 @@
 #define PATH_MAX 1024
 #endif
 
-long int get_dir_size(char *directory, char *parent);
+DIR *folder;
+	struct dirent *entry;
+	struct stat filestat;
+	char pathname[PATH_MAX];
+    long int total=0;
 
-void print_size(int size)
+long int sz_sub_dir(char *directory, char *previous);
+
+void output_dir_size(int size)
 {
     float fsize=size;
-    char *mesure;
-    if (fsize<1000) {mesure="B";} 
-            else if (fsize<1000000) {mesure="KB";fsize/=1000;}
-            else {mesure="MB";fsize/=1000000;}
-            printf("%.3f %s\n",fsize,mesure); 
+    char *unit;
+    if (fsize<1000) {unit="B";} 
+            else if (fsize<1000000) {unit="KB";fsize/=1000;}
+            else {unit="MB";fsize/=1000000;}
+            printf("%.3f %s\n",fsize,unit); 
 }
 
 int main(int argc, char const *argv[])
 {
-	char current[PATH_MAX],parent[PATH_MAX];
-    /* Change to or set current directory */
+	char current[PATH_MAX],previous[PATH_MAX];
+    /* Get Given Directory */
 	if(argc==2)
 	{
 		strcpy(current,argv[1]);
@@ -34,90 +40,81 @@ int main(int argc, char const *argv[])
 		getcwd(current,PATH_MAX);
 	}
 
+    //cd current
 	if(chdir(current))
 	{
 		fprintf(stderr,"Error changing to %s\n",current);
 		exit(1);
 	}
  
-	DIR *folder;
-	struct dirent *entry;
-	struct stat filestat;
-	char pathname[PATH_MAX];
-    long int total=0;
-
     /* open the directory */
 	folder = opendir(".");
 	if(folder == NULL)
 	{
-		fprintf(stderr,"Unable to read directory %s\n",current);
+		fprintf(stderr,"Can't open current directory\n");
 		exit(1);
 	}
 
     while (entry=readdir(folder))
     {
         stat(entry->d_name,&filestat);
-        printf("%s\t\t\t\t\t",entry->d_name);
+        printf("%s\t\t\t",entry->d_name);
 
         if(S_ISDIR(filestat.st_mode))
-	{              //skip file with "." and ".."
+	{              //skip special file(current/parent)
             
 			if(strcmp(entry->d_name,".")==0 || strcmp(entry->d_name,"..")==0)
 			{
 				printf("\n");continue;
 			}
-			/* get size of directory */
-		    total+=get_dir_size(entry->d_name,pathname); 
-            print_size(get_dir_size(entry->d_name,pathname));
+			/* get directory size (in total) */
+		    total+=sz_sub_dir(entry->d_name,pathname); 
+            output_dir_size(sz_sub_dir(entry->d_name,pathname));
 	}
         else
 	{                   
             total+=filestat.st_size;
-            print_size(filestat.st_size);
+            output_dir_size(filestat.st_size);
         }
     }
-    printf("Total size of this Directory:\t\t"); print_size(total);
+    printf("Total size of this Directory:\t"); output_dir_size(total);
     closedir(folder);
 
 	return(0);
 }
 
-long int get_dir_size(char *directory, char *parent)
+long int sz_sub_dir(char *directory, char *previous)
 {
-	DIR *folder;
-	struct dirent *entry;
-	struct stat filestat;
-	char pathname[PATH_MAX];
-    long int size=0;
-    /* Change to the named directory */
+
+    /* cd */
 	if(chdir(directory))
 	{
 		fprintf(stderr,"Error changing to %s\n",directory);
 		exit(1);
 	}
 
-	/* open the directory */
+	/* open directory */
 	folder = opendir(".");
 	if(folder == NULL)
 	{
-		fprintf(stderr,"Unable to read directory %s\n",directory);
+		fprintf(stderr,"Can't open directory %s\n",directory);
 		exit(1);
 	}
 
 	getcwd(pathname,PATH_MAX);
 	printf("%s\n",pathname);
-	/* Look for a subdirectory */
+	/* Looking for a sub-dir */
 	while( (entry=readdir(folder)) )
 	{
 		stat(entry->d_name,&filestat);
-		/* look for directories */
+		/* if dir */
 		if( S_ISDIR(filestat.st_mode) )
 		{
-			/* skip the . and .. entries */
+			/* skip special files */
 			if(strcmp(entry->d_name,".")==0 || strcmp(entry->d_name,"..")==0)
 				continue;
-			/* recurse to get size*/
-			size+=get_dir_size(entry->d_name,pathname);
+			/* call recursion */
+			size+=sz_sub_dir(entry->d_name,pathname);
 		}
         else
         {
@@ -126,6 +123,6 @@ long int get_dir_size(char *directory, char *parent)
         
 	}
 	closedir(folder);
-	chdir(parent);
+	chdir(previous);
     return size;
 }
