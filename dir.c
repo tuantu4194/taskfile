@@ -25,14 +25,17 @@ int main(int argc, char const *argv[])
 {
 	char current[PATH_MAX],parent[PATH_MAX];
     /* Change to or set current directory */
-	if(argc==2){
+	if(argc==2)
+	{
 		strcpy(current,argv[1]);
 	}
-	else{
+	else
+	{
 		getcwd(current,PATH_MAX);
 	}
 
-	if(chdir(current)){
+	if(chdir(current))
+	{
 		fprintf(stderr,"Error changing to %s\n",current);
 		exit(1);
 	}
@@ -45,24 +48,30 @@ int main(int argc, char const *argv[])
 
     /* open the directory */
 	folder = opendir(".");
-	if(folder == NULL){
+	if(folder == NULL)
+	{
 		fprintf(stderr,"Unable to read directory %s\n",current);
 		exit(1);
 	}
 
-    while (entry=readdir(folder)){
+    while (entry=readdir(folder))
+    {
         stat(entry->d_name,&filestat);
         printf("%s\t\t\t\t\t",entry->d_name);
 
-        if(S_ISDIR(filestat.st_mode)){              //if directory
-            /* skip the . and .. entries */
+        if(S_ISDIR(filestat.st_mode))
+	{              //skip file with "." and ".."
+            
 			if(strcmp(entry->d_name,".")==0 || strcmp(entry->d_name,"..")==0)
-				{printf("\n");continue;}
+			{
+				printf("\n");continue;
+			}
 			/* get size of directory */
 		    total+=get_dir_size(entry->d_name,pathname); 
             print_size(get_dir_size(entry->d_name,pathname));
-		}
-        else{                   //if file
+	}
+        else
+	{                   
             total+=filestat.st_size;
             print_size(filestat.st_size);
         }
