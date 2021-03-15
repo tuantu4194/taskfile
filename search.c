@@ -9,70 +9,71 @@
 #define PATH_MAX 1024
 #endif
 #ifndef MAX_ARG
-#define MAX_ARG 10
+#define MAX_ARG 15
 #endif
 
-char *keywords[MAX_ARG];
+DIR *folder;
+	struct dirent *entry;
+	struct stat filestat;
+	char pathname[PATH_MAX];
+
+char *key_list[MAX_ARG];
 int arg;
  
-void dir(char *directory, char *parent);
+void dir(char *directory, char *previous);
 
 void search(char *filename);
 
 int main(int argc, char const *argv[])
 {
-	char current[PATH_MAX],parent[PATH_MAX];
+	char current[PATH_MAX],previous[PATH_MAX];
     int check=0;
-    /* Change to or set directory */
-    if (argc>11){perror("Too many argument!!!"); return(1);}
+    /* change to given dir */
+    if (argc>11){perror("argc>max_arg!!!"); return(1);}
     strcpy(current,argv[1]);
     if (chdir(current)){getcwd(current,PATH_MAX);check=1;}
     
-    /* fetch parent directory */
+    /* set previous directory */
 	chdir("..");
-	getcwd(parent,PATH_MAX);
+	getcwd(previous,PATH_MAX);
 	
     /* get keywords */
     arg=argc;
-    if (check==0 && arg==2){fprintf(stderr,"No keyword entered!!!\n"); return(1);}
+    if (check==0 && arg==2){fprintf(stderr,"No keyword in argv[]!!!\n"); return(1);}
     if (check == 1){ 
-        keywords[0]=malloc(strlen(argv[1])+1);
-        strcpy(keywords[0],argv[1]);
+        key_list[0]=malloc(strlen(argv[1])+1);
+        strcpy(key_list[0],argv[1]);
     }
 
     for (int i=2;i<argc;i++){
-        keywords[i-1]=malloc(strlen(argv[i])+1);
-        strcpy(keywords[i-1],argv[i]);
+        key_list[i-1]=malloc(strlen(argv[i])+1);
+        strcpy(key_list[i-1],argv[i]);
     }
     
-    /* run */
-	dir(current,parent);
+    
+	dir(current,previous); // Actual main
     
     for (int i=0;i<argc;i++){
-        free(keywords[i]);
+        free(key_list[i]);
     }
 
 	return(0);
 }
 
-void dir(char *directory, char *parent)
+void dir(char *directory, char *previous)
 {
-	DIR *folder;
-	struct dirent *entry;
-	struct stat filestat;
-	char pathname[PATH_MAX];
 
-    /* Change to the named directory */
+    /* cd directory */
 	if(chdir(directory))
 	{
-		fprintf(stderr,"Error changing to %s\n",directory);
+		fprintf(stderr,"cd %s error\n",directory);
 		exit(1);
 	}
 
-    /* open the directory */
+    /* open directory */
 	folder = opendir(".");
 	if(folder == NULL){
-		fprintf(stderr,"Unable to read directory %s\n",directory);
+		fprintf(stderr,"Can't open directory %s\n",directory);
 		exit(1);
 	}
 
@@ -81,24 +82,24 @@ void dir(char *directory, char *parent)
     while (entry=readdir(folder)){
         stat(entry->d_name,&filestat);
 
-        if(S_ISDIR(filestat.st_mode)){              //if directory
-            /* skip the . and .. entries */
+        if(S_ISDIR(filestat.st_mode)){              
+            /* skip special files */
 			if(strcmp(entry->d_name,".")==0 || strcmp(entry->d_name,"..")==0)
 				{continue;}
 			/* get size of directory */
 		    dir(entry->d_name,pathname);
 		}
-        else{                   //if file
+        else{                  
             search(entry->d_name);
         }
     }
     closedir(folder);
-    chdir(parent);
+    chdir(previous);
 }
 
 void search(char *filename)
 {
-    int line_num=1, check=0;
+    int line_pos=1, check=0;
     char line[PATH_MAX];
     char pathname[PATH_MAX];
     FILE *f;
@@ -112,17 +113,17 @@ void search(char *filename)
             line[strlen(line)-1]='\0';
             for (int i=0;i<arg;i++)
                 {
-                    if (keywords[i]!=NULL){
-                        if (strstr(line,keywords[i])!=NULL){
+                    if (key_list[i]!=NULL){
+                        if (strstr(line,key_list[i])!=NULL){
                             if (check==0){
                                 printf("%s/%s\n",pathname,filename);
                                 check=1;
                             }
-                        printf("\t%s\tL%d\n",keywords[i],line_num);
+                        printf("\t%s\tL%d\n",key_list[i],line_pos);
                         }  
                     }
                 }   
-            line_num++;
+            line_pos++;
         }  
     fclose(f);  
 } 
