@@ -29,7 +29,7 @@ int main(int argc, char const *argv[])
 	char current[PATH_MAX],previous[PATH_MAX];
     int check=0;
     /* change to given dir */
-    if (argc>11){perror("argc>max_arg!!!"); return(1);}
+    if (argc>15){perror("argc>max_arg!!!"); return(1);}
     strcpy(current,argv[1]);
     if (chdir(current)){getcwd(current,PATH_MAX);check=1;}
     
